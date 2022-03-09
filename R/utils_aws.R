@@ -45,52 +45,46 @@ create_s3_config <- function(...){
   return(paws::s3(config = check_options_s3(...)))
 }
 
-s3config = create_s3_config(endpoint = paste0("https://", Sys.getenv("AWS_S3_ENDPOINT")))
-
 
 # ----------------------------------
 # CHECK CONNEXION 
 
+s3client = create_s3_config(endpoint = paste0("https://", Sys.getenv("AWS_S3_ENDPOINT")))
+key = 'wikipedia/wikipedia_ciqual_products.csv'
+bucket = 'projet-relevanc'
+aws_s3_exists(key, bucket,
+            endpoint = paste0("https://", Sys.getenv("AWS_S3_ENDPOINT")))
 
 
-aws_s3_exists <- function(key, bucket, region = NULL, version = NULL) {
-  tryCatch(
-    aws_s3_head_true(
-      key = key,
-      bucket = bucket,
-      region = region,
-      version = version
-    ),
-    http_400 = function(condition) {
-      FALSE
-    }
+aws_s3_head <- function(key, bucket, version = NULL, ...) {
+  s3client <- create_s3_config(...)
+  return(
+    s3client$head_object(Key = key, Bucket = bucket, VersionId = version)
   )
 }
 
-
-aws_s3_head <- function(key, bucket, region = NULL, version = NULL) {
-  if (!is.null(region)) {
-    withr::local_envvar(.new = list(AWS_REGION = region))
-  }
-  args <- list(
-    Key = key,
-    Bucket = bucket
-  )
-  if (!is.null(version)) {
-    args$VersionId <- version
-  }
-  s3client <- create_s3_config()
-  do.call(what = s3client$head_object, args = args)
-}
-
-aws_s3_head_true <- function(key, bucket, region = NULL, version = NULL) {
+aws_s3_head_true <- function(key, bucket, version = NULL, ...){
   aws_s3_head(
     key = key,
     bucket = bucket,
     region = region,
     version = version
   )
-  TRUE
+  return(TRUE)
+}
+
+aws_s3_exists <- function(key, bucket, version = NULL, ...) {
+  tryCatch(
+    aws_s3_head_true(
+      key = key,
+      bucket = bucket,
+      version = version,
+      ...
+    ),
+    http_400 = function(condition) {
+      FALSE
+    }
+  )
 }
 
 aws_s3_download <- function(
