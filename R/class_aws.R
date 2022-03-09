@@ -67,6 +67,35 @@ store_aws_key <- function(path) {
   store_aws_path_field(path = path, pattern = "^key=")
 }
 
+store_aws_access_key_id <- function(path) {
+  # compatibility with targets <= 0.8.1:
+  if (store_aws_path_0.8.1(path)) {
+    return(path[4L])
+  }
+  store_aws_path_field(path = path, pattern = "^access_key_id=")
+}
+store_aws_secret_access_key <- function(path) {
+  # compatibility with targets <= 0.8.1:
+  if (store_aws_path_0.8.1(path)) {
+    return(path[5L])
+  }
+  store_aws_path_field(path = path, pattern = "^secret_access_key=")
+}
+store_aws_session_token <- function(path) {
+  # compatibility with targets <= 0.8.1:
+  if (store_aws_path_0.8.1(path)) {
+    return(path[6L])
+  }
+  store_aws_path_field(path = path, pattern = "^session_token=")
+}
+store_aws_endpoint <- function(path) {
+  # compatibility with targets <= 0.8.1:
+  if (store_aws_path_0.8.1(path)) {
+    return(path[7L])
+  }
+  store_aws_path_field(path = path, pattern = "^endpoint=")
+}
+
 store_aws_path_field <- function(path, pattern) {
   path <- store_aws_split_colon(path)
   keyvalue_field(x = path, pattern = pattern)
@@ -120,7 +149,11 @@ store_upload_object.tar_aws <- function(store) {
       bucket = store_aws_bucket(store$file$path),
       region = store_aws_region(store$file$path),
       metadata = list("targets-hash" = store$file$hash),
-      part_size = store$resources$aws$part_size %|||% (5 * (2 ^ 20))
+      part_size = store$resources$aws$part_size %|||% (5 * (2 ^ 20)),
+      access_key_id = store_aws_access_key_id(store$file$path),
+      secret_access_key = store_aws_secret_access_key(store$file$path),
+      session_token = store_aws_session_token(store$file$path),
+      endpoint = store_aws_endpoint(store$file$path)
     ),
     tar_throw_file(
       "Cannot upload non-existent AWS staging file ",
