@@ -1,35 +1,42 @@
 #' @export
-store_produce_path.tar_aws <- function(store, name, object, path_store) {
+store_produce_path.tar_aws <- function(store, name, object, path_store, config_aws = config_aws) {
   store_produce_aws_path(
     store = store,
     name = name,
     object = object,
-    path_store = path_store
+    path_store = path_store,
+    config_aws = config_aws
   )
 }
 
-store_produce_aws_path <- function(store, name, object, path_store) {
+store_produce_aws_path <- function(store, name, object, path_store, config_aws = config_aws) {
   bucket <- store$resources$aws$bucket %|||% store$resources$bucket
-  region <- store$resources$aws$region %|||% store$resources$region
   tar_assert_nonempty(bucket)
   tar_assert_chr(bucket)
   tar_assert_scalar(bucket)
   tar_assert_nzchar(bucket)
-  tar_assert_nonempty(region %|||% "region")
-  tar_assert_chr(region %|||% "region")
-  tar_assert_scalar(region %|||% "region")
+  tar_assert_nonempty(config_aws$region %|||% "region")
+  tar_assert_chr(config_aws$region %|||% "region")
+  tar_assert_scalar(config_aws$region %|||% "region")
   prefix <- store$resources$aws$prefix %|||%
     store$resources$prefix %|||%
     path_objects_dir_cloud()
   tar_assert_nonempty(prefix)
   tar_assert_chr(prefix)
   tar_assert_scalar(prefix)
+  tar_assert_list(config_aws)
   key <- file.path(prefix, name)
   tar_assert_nzchar(key)
   bucket <- paste0("bucket=", bucket)
-  region <- paste0("region=", if_any(is.null(region), "NULL", region))
   key <- paste0("key=", key)
-  c(bucket, region, key)
+  access_key_id <- paste0("access_key_id=", config_aws$access_key_id)
+  secret_access_key <- paste0("secret_access_key=", config_aws$secret_access_key)
+  session_token <- paste0("session_token=", config_aws$session_token)
+  region <- paste0("region=", if_any(is.null(config_aws$region), "NULL", config_aws$region))
+  endpoint <- paste0("endpoint=", config_aws$endpoint)
+  return(
+    c(bucket, region, key, access_key_id, secret_access_key, session_token, endpoint)
+  )
 }
 
 store_aws_bucket <- function(path) {

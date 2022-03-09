@@ -32,14 +32,15 @@
 tar_resources_aws <- function(
   bucket,
   prefix = targets::path_objects_dir_cloud(),
-  region = NULL,
-  part_size = 5 * (2 ^ 20)
+  part_size = 5 * (2 ^ 20),
+  ...
 ) {
+  config_aws <- check_options_s3(...)
   out <- resources_aws_init(
     bucket = bucket,
     prefix = prefix,
-    region = region,
-    part_size = part_size
+    part_size = part_size,
+    config_aws = config_aws
   )
   resources_validate(out)
   out
