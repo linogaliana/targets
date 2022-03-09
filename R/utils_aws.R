@@ -49,12 +49,6 @@ create_s3_config <- function(...){
 # ----------------------------------
 # CHECK CONNEXION 
 
-s3client = create_s3_config(endpoint = paste0("https://", Sys.getenv("AWS_S3_ENDPOINT")))
-key = 'wikipedia/wikipedia_ciqual_products.csv'
-bucket = 'projet-relevanc'
-aws_s3_exists(key, bucket,
-            endpoint = paste0("https://", Sys.getenv("AWS_S3_ENDPOINT")))
-
 
 aws_s3_head <- function(key, bucket, version = NULL, ...) {
   s3client <- create_s3_config(...)
@@ -67,8 +61,8 @@ aws_s3_head_true <- function(key, bucket, version = NULL, ...){
   aws_s3_head(
     key = key,
     bucket = bucket,
-    region = region,
-    version = version
+    version = version,
+    ...
   )
   return(TRUE)
 }
@@ -87,26 +81,24 @@ aws_s3_exists <- function(key, bucket, version = NULL, ...) {
   )
 }
 
+# --------------------------
+# GET OBJECTS FROM S3
+
 aws_s3_download <- function(
     file,
     key,
     bucket,
-    region = NULL,
-    version = NULL
+    version = NULL,
+    ...
 ) {
-  if (!is.null(region)) {
-    withr::local_envvar(.new = list(AWS_REGION = region))
-  }
-  args <- list(
-    Key = key,
-    Bucket = bucket
-  )
-  if (!is.null(version)) {
-    args$VersionId <- version
-  }
-  out <- do.call(what = paws::s3()$get_object, args = args)$Body
+  
+  s3client <- create_s3_config(...)
+  out <- s3client$get_object(Key = key, Bucket = bucket, VersionId = version)$Body
   writeBin(out, con = file)
 }
+
+# --------------------------
+# UPLOAD OBJECTS TO S3
 
 # Copied from https://github.com/paws-r/paws/blob/main/examples/s3_multipart_upload.R # nolint
 # and modified under Apache 2.0.
@@ -115,15 +107,14 @@ aws_s3_upload <- function(
     file,
     key,
     bucket,
-    region = NULL,
     metadata = list(),
     multipart = file.size(file) > part_size,
-    part_size = 5 * (2 ^ 20)
+    part_size = 5 * (2 ^ 20),
+    ...
 ) {
-  if (!is.null(region)) {
-    withr::local_envvar(.new = list(AWS_REGION = region))
-  }
-  client <- paws::s3()
+  
+  client <- create_s3_config(...)
+  
   if (!multipart) {
     out <- client$put_object(
       Body = readBin(file, what = "raw", n = file.size(file)),
@@ -175,9 +166,11 @@ aws_s3_upload_parts <- function(
     key,
     bucket,
     part_size,
-    upload_id
+    upload_id,
+    ...
 ) {
-  client <- paws::s3()
+  
+  client <- create_s3_config(...)
   file_size <- file.size(file)
   num_parts <- ceiling(file_size / part_size)
   con <- base::file(file, open = "rb")
